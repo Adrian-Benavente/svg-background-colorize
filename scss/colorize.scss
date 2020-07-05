@@ -4,6 +4,8 @@
 @use "sass:map";
 @use "sass:list";
 
+/// Tries to convert a given HEX color to its equivalent CSS filter.
+/// Attention: The result is imprecise and this is still a work in progress.
 /// @param {color} $color - the color in HEX you want to achieve
 /// @returns {string} - the corresponding set of CSS filters
 @function svg-to-color($color) {
@@ -21,6 +23,10 @@
   @return $colored-svg;
 }
 
+/// Converts RGB to HSL
+/// @param {map} $rgb - a map of the three values of RGB
+/// in the following format (r: {number}, g: {number}, b: {number})
+/// @returns {map} - the resulting HSL map
 @function _hsl($rgb) {
   $r: map.get($rgb, r) / 255;
   $g: map.get($rgb, g) / 255;
