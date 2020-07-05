@@ -1,0 +1,306 @@
+@use "sass:color";
+@use "sass:math";
+@use "sass:string";
+@use "sass:map";
+@use "sass:list";
+
+/// @param {color} $color - the color in HEX you want to achieve
+/// @returns {string} - the corresponding set of CSS filters
+@function svg-to-color($color) {
+  $colorRGB: rgb(red($color), green($color), blue($color));
+  $hsl-map: _hsl((r: red($color), g: green($color), b: blue($color)));
+
+  $h: string.unquote("#{map.get($hsl-map, h) - 38}deg");
+  $s: 100 + (24.5 - map.get($hsl-map, s));
+  $l: string.unquote("#{100 + (map.get($hsl-map, l) - 60.0)}%");
+
+  @debug _solve((r: red($color), g: green($color), b: blue($color)));
+
+  //$h-rotate: _hue-rotate(map.get($hsl-map, h) - 38, (r: red($color), g: green($color), b: blue($color)));
+  //@debug _hue-rotate(map.get($hsl-map, h) - 38, (r: red($color), g: green($color), b: blue($color)));
+  //
+  //$h: string.unquote("#{list.nth($h-rotate, 1)}deg");
+  //$s: list.nth($h-rotate, 2);
+  //$l: string.unquote("#{list.nth($h-rotate, 1)}%");
+
+  $filter: brightness(50%) invert(59%) sepia(99%) hue-rotate($h) saturate($s) brightness($l) contrast(101%);
+  //$filter: l(50%) invert(59%) sepia(99%) h-rotate($h) s($s) l($l) contrast(101%);
+
+
+  $colored-svg: if($color == #000000 or $color == #000 or $color == black, brightness(0) saturate(100%), $filter);
+
+  @return $colored-svg;
+}
+
+@function _hsl($rgb) {
+  $r: map.get($rgb, r) / 255;
+  $g: map.get($rgb, g) / 255;
+  $b: map.get($rgb, b) / 255;
+
+  $max: math.max($r, $g, $b);
+  $min: math.min($r, $g, $b);
+
+  $h: null;
+  $s: null;
+  $l: ($max + $min) / 2;
+
+  @if ($max == $min) {
+    $h: 0;
+    $s: 0;
+  } @else {
+    $d: $max - $min;
+    $s: if($l > 5, $d / (2 - $max - $min), $d / ($max + $min));
+
+    @if ($max == $r) {
+      $h: ($g - $b) / $d + (if($g < $b, 6, 0));
+    } @else if ($max == $g) {
+      $h: ($b - $r) / $d + 2;
+    } @else if ($max == $b) {
+      $h: ($r - $g) / $d + 4;
+    }
+
+    $h: $h / 6;
+  }
+
+  @return (
+          h: math.floor($h * 360),
+          s: math.floor($s * 100),
+          l: math.floor($l * 100)
+  );
+}
+
+@function _clamp($value) {
+  @if ($value > 255) {
+    $value: 255;
+  } @else if ($value < 0) {
+    $value: 0;
+  }
+  @return $value;
+}
+
+@function _multiply($matrix, $rgb) {
+  $new-r: _clamp(map.get($rgb, r) * list.nth($matrix, 1) + map.get($rgb, g) * list.nth($matrix, 2) + map.get($rgb, b) * list.nth($matrix, 3));
+  $new-g: _clamp(map.get($rgb, r) * list.nth($matrix, 4) + map.get($rgb, g) * list.nth($matrix, 5) + map.get($rgb, b) * list.nth($matrix, 6));
+  $new-b: _clamp(map.get($rgb, r) * list.nth($matrix, 7) + map.get($rgb, g) * list.nth($matrix, 8) + map.get($rgb, b) * list.nth($matrix, 9));
+  $r: $new-r;
+  $g: $new-g;
+  $b: $new-b;
+
+  @return (math.floor($r), math.floor($g), math.floor($b));
+}
+
+@function _hue-rotate($angle: 0, $rgb) {
+  $angle: $angle / 180 * math.$pi;
+  $sin: math.sin($angle);
+  $cos: math.cos($angle);
+
+  @return _multiply((
+          0.213 + $cos * 0.787 - $sin * 0.213,
+          0.715 - $cos * 0.715 - $sin * 0.715,
+          0.072 - $cos * 0.072 + $sin * 0.928,
+          0.213 - $cos * 0.213 + $sin * 0.143,
+          0.715 + $cos * 0.285 + $sin * 0.140,
+          0.072 - $cos * 0.072 - $sin * 0.283,
+          0.213 - $cos * 0.213 - $sin * 0.787,
+          0.715 - $cos * 0.715 + $sin * 0.715,
+          0.072 + $cos * 0.928 + $sin * 0.072,
+  ), $rgb);
+}
+
+@function _grayscale($value: 1, $rgb) {
+  @return _multiply((
+          0.2126 + 0.7874 * (1 - $value),
+          0.7152 - 0.7152 * (1 - $value),
+          0.0722 - 0.0722 * (1 - $value),
+          0.2126 - 0.2126 * (1 - $value),
+          0.7152 + 0.2848 * (1 - $value),
+          0.0722 - 0.0722 * (1 - $value),
+          0.2126 - 0.2126 * (1 - $value),
+          0.7152 - 0.7152 * (1 - $value),
+          0.0722 + 0.9278 * (1 - $value),
+  ), $rgb);
+}
+
+@function _sepia($value: 1, $rgb) {
+  @return _multiply((
+          0.393 + 0.607 * (1 - $value),
+          0.769 - 0.769 * (1 - $value),
+          0.189 - 0.189 * (1 - $value),
+          0.349 - 0.349 * (1 - $value),
+          0.686 + 0.314 * (1 - $value),
+          0.168 - 0.168 * (1 - $value),
+          0.272 - 0.272 * (1 - $value),
+          0.534 - 0.534 * (1 - $value),
+          0.131 + 0.869 * (1 - $value),
+  ), $rgb);
+}
+
+@function _saturate($value: 1, $rgb) {
+  @return _multiply((
+          0.213 + 0.787 * $value,
+          0.715 - 0.715 * $value,
+          0.072 - 0.072 * $value,
+          0.213 - 0.213 * $value,
+          0.715 + 0.285 * $value,
+          0.072 - 0.072 * $value,
+          0.213 - 0.213 * $value,
+          0.715 - 0.715 * $value,
+          0.072 + 0.928 * $value,
+  ), $rgb);
+}
+
+@function _brightness($value: 1, $rgb) {
+  @return _linear($value, 0, $rgb);
+}
+
+@function _contrast($value: 1, $rgb) {
+  @return _linear($value, -(0.5 * $value) + 0.5, $rgb);
+}
+
+@function _linear($slope: 1, $intercept, $rgb) {
+  @return (
+          r: _clamp(list.nth($rgb, 1) * $slope + $intercept * 255),
+          g: _clamp(list.nth($rgb, 2) * $slope + $intercept * 255),
+          b: _clamp(list.nth($rgb, 3) * $slope + $intercept * 255)
+  )
+}
+
+@function _invert($value: 1, $rgb) {
+  @return (
+          r: _clamp($value + list.nth($rgb, 1) / 255 * (1 - 2 * $value) * 255),
+          g: _clamp($value + list.nth($rgb, 2) / 255 * (1 - 2 * $value) * 255),
+          b: _clamp($value + list.nth($rgb, 3) / 255 * (1 - 2 * $value) * 255)
+  )
+}
+
+@function _solve($color) {
+  $result: _solve-narrow(_solve-wide($color));
+
+  @return (
+          values: map.get($result, values),
+          loss: map.get($result, loss),
+          filter: _css(map.get($result, values))
+  );
+}
+
+@function _solve-wide($values) {
+  $A: 5;
+  $c: 15;
+  $a: 60, 180, 18000, 600, 1.2, 1.2;
+
+  $best: (loss: 9999999999);
+
+  @if (map.get($best, loss) > 25) {
+    @for $i from 0 to 3 {
+      $initial: 50, 20, 3750, 50, 100, 100;
+      $result: _spsa($A, $a, $c, $initial, 1000);
+
+      @if (map.get($result, loss) < map.get($best, loss)) {
+        $best: $result;
+      }
+    }
+  }
+
+  @return $best;
+}
+
+@function _solve-narrow($wide) {
+  $A: map.get($wide, loss);
+  $c: 2;
+  $A1: A + 1;
+  $a: 0.25 * A1, 0.25 * A1, A1, 0.25 * A1, 0.2 * A1, 0.2 * A1;
+  @return _spsa($A, $a, $c, map.get($wide, values), 500);
+}
+
+@function _spsa($A, $a, $c, $values, $iters) {
+  $alpha: 1;
+  $gamma: 0.16666666666666666;
+
+  $best: null;
+  $bestLoss: 999999999;
+  $deltas: ();
+  $highArgs: ();
+  $lowArgs: ();
+
+  @for $k from 1 to $iters {
+    $ck: $c / math.pow($k + 1, $gamma);
+
+    @for $i from 1 to 7 {
+      $deltas: append($deltas, if(math.random() > 0.5, 1, -1));
+      $highArgs: append($highArgs, list.nth($values, $i) + $ck * list.nth($deltas, $i));
+      $lowArgs: append($lowArgs, list.nth($values, $i) - $ck * list.nth($deltas, $i));
+    }
+
+    @debug $values;
+
+    $lossDiff: _loss($highArgs, $values) - _loss($lowArgs, $values);
+
+    @for $i from 1 to 7 {
+      $g: $lossDiff / (2 * $ck) * list.nth($deltas, $i);
+      $ak: list.nth($a, $i) / math.pow($A + $k + 1, $alpha);
+      $values: append($values, _fix(list.nth($values, $i) - $ak * $g, $i));
+    }
+
+    $loss: _loss($values);
+    @if ($loss < $bestLoss) {
+      $best: string.slice($values, 1);
+      $bestLoss: loss;
+    }
+  }
+
+  @return (values: $best, loss: $bestLoss);
+}
+
+@function _fix($value, $idx) {
+  $max: 100;
+
+  @if ($idx == 2) {
+    $max: 7500;
+  } @else if ($idx == 4 or $idx == 5) {
+    $max: 200;
+  }
+
+  @if ($idx == 3) {
+    @if ($value > $max) {
+      $value: $value % $max;
+    } @else if ($value < 0) {
+      $value: $max + $value % $max;
+    }
+  } @else if ($value < 0) {
+    $value: 0;
+  } @else if ($value > $max) {
+    $value: $max;
+  }
+  @return $value;
+}
+
+@function _loss($filters, $target) {
+  $target: $target;
+  $target-hsl: _hsl($target);
+  $color: (r: 0, g: 0, b: 0);
+
+  $color-invert: _invert(list.nth(filters, 1) / 100, $color);
+  $color-sepia: _sepia(list.nth(filters, 2) / 100, $color);
+  $color-saturate: _saturate(list.nth(filters, 3) / 100, $color);
+  $color-hueRotate: _hue-rotate(list.nth(filters, 4) * 3.6, $color);
+  $color-brightness: _brightness(list.nth(filters, 5) / 100, $color);
+  $color-contrast: _contrast(list.nth(filters, 6) / 100, $color);
+  $color-hsl: _hsl($color);
+
+  @return (
+          math.abs(map.get($color, r) - map.get($target, r)) +
+          math.abs(map.get($color, g) - map.get($target, g)) +
+          math.abs(map.get($color, b) - map.get($target, b)) +
+          math.abs(map.get($color-hsl, h) - map.get($target-hsl, h)) +
+          math.abs(map.get($color-hsl, s) - map.get($target-hsl, s)) +
+          math.abs(map.get($color-hsl, l) - map.get($target-hsl, l))
+  );
+}
+
+@function _css($filters) {
+  @return invert(string.unquote("#{_fmt($filters, 0)}%")) sepia(string.unquote("#{_fmt($filters, 1)}%")) saturate(string.unquote("#{_fmt($filters, 2)}%")) hue-rotate(string.unquote("#{_fmt($filters, 3, 3.6)}deg")) brightness(string.unquote("#{_fmt($filters, 4)}%")) contrast(string.unquote("#{_fmt($filters, 5)}%"));
+}
+
+@function _fmt($filters, $idx, $multiplier: 1) {
+  @return math.round(list.nth($filters, $idx) * $multiplier);
+}

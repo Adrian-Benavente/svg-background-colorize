@@ -1,0 +1,12 @@
+@use "colorize";
+
+.svg {
+  background: {
+    image: url("../svg/eva_checkmark-circle-2-blue.svg");
+    repeat: no-repeat;
+    size: cover;
+  };
+  filter: colorize.svg-to-color(#5C89D1);
+  height: 250px;
+  width: 250px;
+}
