@@ -1,0 +1,8 @@
+.svg {
+  background-image: url("../svg/eva_checkmark-circle-2-black.svg");
+  background-repeat: no-repeat;
+  background-size: cover;
+  filter: brightness(50%) invert(59%) sepia(99%) hue-rotate(202deg) saturate(24.5) brightness(90%) contrast(101%);
+  height: 250px;
+  width: 250px;
+}

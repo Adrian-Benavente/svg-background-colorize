@@ -2,11 +2,11 @@
 
 .svg {
   background: {
-    image: url("../svg/eva_checkmark-circle-2-blue.svg");
+    image: url("../svg/eva_checkmark-circle-2-black.svg");
     repeat: no-repeat;
     size: cover;
   };
-  filter: colorize.svg-to-color(#5C89D1);
+  filter: colorize.svg-to-color(#0000FF);
   height: 250px;
   width: 250px;
 }
